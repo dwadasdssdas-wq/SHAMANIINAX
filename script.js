@@ -9,7 +9,7 @@ class ShamanAI {
         this.initParticles();
         this.initEventListeners();
         this.showWelcomeEffects();
-        this.testHuggingFaceConnection();
+        this.testAIConnection();
     }
 
     initParticles() {
@@ -53,7 +53,6 @@ class ShamanAI {
         const toolButtons = document.querySelectorAll('.tool-btn');
         const quickButtons = document.querySelectorAll('.quick-btn');
         const modeButtons = document.querySelectorAll('.mode-btn');
-        const voiceBtn = document.getElementById('voiceBtn');
         const handwritingBtn = document.getElementById('handwritingBtn');
         const uploadModal = document.getElementById('uploadModal');
         const closeModal = document.querySelector('.close-modal');
@@ -87,7 +86,6 @@ class ShamanAI {
             });
         });
 
-        voiceBtn.addEventListener('click', () => this.toggleVoiceInput());
         handwritingBtn.addEventListener('click', () => this.openUploadModal());
         closeModal.addEventListener('click', () => this.closeUploadModal());
         handwritingInput.addEventListener('change', (e) => this.handleHandwritingUpload(e));
@@ -99,18 +97,17 @@ class ShamanAI {
         });
     }
 
-    async testHuggingFaceConnection() {
-        this.addSystemMessage("🔗 Проверяю подключение к Hugging Face...");
+    async testAIConnection() {
+        this.addSystemMessage("Проверяю подключение к AI...");
         
         try {
-            // Тестовый запрос к простой модели
-            const response = await this.makeHuggingFaceRequest('Привет!', 'chat');
+            const response = await this.makeAIRequest('Привет!', 'chat');
             this.updateAIStatus(true);
-            this.addSystemMessage("✅ Hugging Face подключен и готов к работе!");
+            this.addSystemMessage("AI подключен и готов к работе!");
         } catch (error) {
-            console.error('Hugging Face connection failed:', error);
+            console.error('AI connection failed:', error);
             this.updateAIStatus(false);
-            this.addSystemMessage("⚠️ Hugging Face временно недоступен. Используется локальный режим.");
+            this.addSystemMessage("AI временно недоступен. Используется локальный режим.");
         }
     }
 
@@ -121,11 +118,10 @@ class ShamanAI {
         if (isActive) {
             aiStatus.innerHTML = `
                 <span class="ai-dot active"></span>
-                <span class="ai-text">Hugging Face активен</span>
+                <span class="ai-text">AI активен</span>
             `;
             apiStatus.innerHTML = `
-                <span class="status-icon">🤗</span>
-                <span class="status-message">HF Connected</span>
+                <span class="status-message">AI Connected</span>
             `;
         } else {
             aiStatus.innerHTML = `
@@ -133,13 +129,12 @@ class ShamanAI {
                 <span class="ai-text" style="color: #6B7280;">Локальный режим</span>
             `;
             apiStatus.innerHTML = `
-                <span class="status-icon">⚠️</span>
                 <span class="status-message">Local Mode</span>
             `;
         }
     }
 
-    async makeHuggingFaceRequest(userMessage, modelType = 'chat') {
+    async makeAIRequest(userMessage, modelType = 'chat') {
         const cacheKey = `${modelType}_${userMessage.substring(0, 50)}`;
         
         if (this.cache.has(cacheKey)) {
@@ -148,11 +143,10 @@ class ShamanAI {
 
         try {
             let response;
-            const API_URL = SHAMAN_AI_CONFIG.API_URLS.HUGGING_FACE;
             
             switch(modelType) {
                 case 'chat':
-                    response = await this.chatWithDialogGPT(userMessage);
+                    response = await this.chatWithAI(userMessage);
                     break;
                 case 'handwriting':
                     response = "Готов к распознаванию почерка";
@@ -161,23 +155,28 @@ class ShamanAI {
                     response = await this.handleMathWithAI(userMessage);
                     break;
                 default:
-                    response = await this.chatWithDialogGPT(userMessage);
+                    response = await this.chatWithAI(userMessage);
             }
             
             this.cache.set(cacheKey, response);
             return response;
         } catch (error) {
-            console.error('Hugging Face error:', error);
+            console.error('AI error:', error);
             throw new Error('Ошибка подключения к AI');
         }
     }
 
-    async chatWithDialogGPT(userMessage) {
+    async chatWithAI(userMessage) {
         const API_URL = SHAMAN_AI_CONFIG.API_URLS.HUGGING_FACE + SHAMAN_AI_CONFIG.MODELS.CHAT;
         
+        const prompt = `Ты - ShamanAI, продвинутый AI помощник. Ты помогаешь пользователям с различными задачами, включая образование, программирование, математику, физику, химию, а также ведешь светские беседы. Отвечай точно и ясно, без использования эмодзи.
+
+Пользователь: ${userMessage}
+ShamanAI:`;
+
         try {
             const response = await axios.post(API_URL, {
-                inputs: userMessage,
+                inputs: prompt,
                 parameters: {
                     max_length: 500,
                     temperature: this.aiMode === 'smart' ? 0.7 : 0.3,
@@ -193,19 +192,22 @@ class ShamanAI {
             });
 
             if (response.data && response.data[0] && response.data[0].generated_text) {
-                return response.data[0].generated_text.replace(userMessage, '').trim();
+                let generatedText = response.data[0].generated_text;
+                generatedText = generatedText.replace(prompt, '').trim();
+                generatedText = generatedText.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F700}-\u{1F77F}]|[\u{1F780}-\u{1F7FF}]|[\u{1F800}-\u{1F8FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
+                return generatedText;
             } else {
                 return this.generateLocalResponse(userMessage);
             }
         } catch (error) {
-            console.warn('Hugging Face API недоступен, используем локальный режим');
+            console.warn('AI API недоступен, используем локальный режим');
             return this.generateLocalResponse(userMessage);
         }
     }
 
     async handleMathWithAI(question) {
-        const mathPrompt = `Ты - AI помощник по математике для школьников. Ответь точно и понятно на вопрос: ${question}. Объясни шаги решения.`;
-        return await this.chatWithDialogGPT(mathPrompt);
+        const mathPrompt = `Ты - AI помощник по математике. Ответь точно и понятно на вопрос: ${question}. Объясни шаги решения.`;
+        return await this.chatWithAI(mathPrompt);
     }
 
     async recognizeHandwriting(imageFile) {
@@ -224,13 +226,13 @@ class ShamanAI {
             });
 
             if (response.data && response.data.text) {
-                return `📝 Распознанный текст: "${response.data.text}"`;
+                return `Распознанный текст: "${response.data.text}"`;
             } else {
-                return "❌ Не удалось распознать текст. Попробуйте другое изображение.";
+                return "Не удалось распознать текст. Попробуйте другое изображение.";
             }
         } catch (error) {
             console.error('OCR Error:', error);
-            return "❌ Ошибка распознавания. Проверьте подключение или попробуйте позже.";
+            return "Ошибка распознавания. Проверьте подключение или попробуйте позже.";
         }
     }
 
@@ -250,7 +252,7 @@ class ShamanAI {
                 modelType = 'math';
             }
 
-            const response = await this.makeHuggingFaceRequest(inputText, modelType);
+            const response = await this.makeAIRequest(inputText, modelType);
             
             this.hideThinkingIndicator();
             this.addMessage(response, 'ai');
@@ -262,7 +264,7 @@ class ShamanAI {
             console.error('Error:', error);
             const fallbackResponse = this.generateLocalResponse(inputText);
             this.addMessage(fallbackResponse, 'ai');
-            this.addSystemMessage("⚠️ Используется локальная обработка запроса");
+            this.addSystemMessage("Используется локальная обработка запроса");
         }
     }
 
@@ -280,11 +282,11 @@ class ShamanAI {
         if (!file) return;
 
         if (!file.type.startsWith('image/')) {
-            this.addSystemMessage("❌ Пожалуйста, загрузите изображение");
+            this.addSystemMessage("Пожалуйста, загрузите изображение");
             return;
         }
 
-        this.addMessage(`📎 Загружено изображение: ${file.name}`, 'user');
+        this.addMessage(`Загружено изображение: ${file.name}`, 'user');
         this.showThinkingIndicator();
         
         try {
@@ -294,11 +296,11 @@ class ShamanAI {
             this.updateRequestCount();
             
             if (this.containsMath(recognitionResult)) {
-                this.addMessage("🧮 Нашел математическую задачу! Хотите, чтобы я её решил?", 'ai');
+                this.addMessage("Нашел математическую задачу! Хотите, чтобы я её решил?", 'ai');
             }
         } catch (error) {
             this.hideThinkingIndicator();
-            this.addMessage("❌ Ошибка при обработке изображения", 'ai');
+            this.addMessage("Ошибка при обработке изображения", 'ai');
         }
 
         this.closeUploadModal();
@@ -325,17 +327,17 @@ class ShamanAI {
     }
 
     async handlePhysicsQuestion() {
-        this.addMessage("🔬 Задайте вопрос по физике...", 'user');
+        this.addMessage("Задайте вопрос по физике...", 'user');
         setTimeout(async () => {
-            const response = await this.makeHuggingFaceRequest("Объясни концепцию из физики для школьников: законы Ньютона", 'chat');
+            const response = await this.makeAIRequest("Объясни концепцию из физики для школьников: законы Ньютона", 'chat');
             this.addMessage(response, 'ai');
         }, 100);
     }
 
     async handleChemistryQuestion() {
-        this.addMessage("🧪 Задайте вопрос по химии...", 'user');
+        this.addMessage("Задайте вопрос по химии...", 'user');
         setTimeout(async () => {
-            const response = await this.makeHuggingFaceRequest("Объясни основы химических реакций для школьников", 'chat');
+            const response = await this.makeAIRequest("Объясни основы химических реакций для школьников", 'chat');
             this.addMessage(response, 'ai');
         }, 100);
     }
@@ -344,12 +346,12 @@ class ShamanAI {
         const functionStr = prompt('Введите функцию для построения графика (например: x^2, sin(x), 1/x):', 'x^2');
         if (functionStr) {
             this.plotFunction(functionStr, `График y = ${functionStr}`);
-            this.addMessage(`📊 Построение графика функции: y = ${functionStr}`, 'ai');
+            this.addMessage(`Построение графика функции: y = ${functionStr}`, 'ai');
         }
     }
 
     showGeometryHelper() {
-        this.addMessage("📐 Запускаю геометрический помощник... Опишите задачу, и я построю чертеж!", 'ai');
+        this.addMessage("Запускаю геометрический помощник... Опишите задачу, и я построю чертеж!", 'ai');
         this.drawInteractiveGeometry();
     }
 
@@ -473,14 +475,14 @@ class ShamanAI {
             example_math: () => {
                 this.addMessage("Решите уравнение: x² - 5x + 6 = 0", 'user');
                 setTimeout(async () => {
-                    const response = await this.makeHuggingFaceRequest("Реши уравнение: x² - 5x + 6 = 0. Объясни шаги решения.", 'math');
+                    const response = await this.makeAIRequest("Реши уравнение: x² - 5x + 6 = 0. Объясни шаги решения.", 'math');
                     this.addMessage(response, 'ai');
                 }, 1000);
             },
             example_geometry: () => {
                 this.addMessage("Найдите площадь треугольника со сторонами 5, 6, 7", 'user');
                 setTimeout(async () => {
-                    const response = await this.makeHuggingFaceRequest("Найди площадь треугольника со сторонами 5, 6, 7. Объясни решение.", 'math');
+                    const response = await this.makeAIRequest("Найди площадь треугольника со сторонами 5, 6, 7. Объясни решение.", 'math');
                     this.addMessage(response, 'ai');
                 }, 1000);
             },
@@ -497,37 +499,6 @@ class ShamanAI {
         }
     }
 
-    toggleVoiceInput() {
-        if (!this.isListening) {
-            this.startVoiceRecognition();
-        } else {
-            this.stopVoiceRecognition();
-        }
-    }
-
-    startVoiceRecognition() {
-        this.isListening = true;
-        this.addSystemMessage("🎤 Слушаю... Говорите сейчас");
-        
-        setTimeout(() => {
-            const sampleQuestions = [
-                "Построй график функции y равно x в квадрате",
-                "Реши задачу по геометрии про треугольник",
-                "Объясни закон Ньютона"
-            ];
-            const randomQuestion = sampleQuestions[Math.floor(Math.random() * sampleQuestions.length)];
-            
-            document.getElementById('userInput').value = randomQuestion;
-            this.stopVoiceRecognition();
-            this.addSystemMessage(`🎤 Распознано: "${randomQuestion}"`);
-        }, 2000);
-    }
-
-    stopVoiceRecognition() {
-        this.isListening = false;
-        this.addSystemMessage("🔇 Голосовой ввод отключен");
-    }
-
     openUploadModal() {
         document.getElementById('uploadModal').style.display = 'block';
     }
@@ -538,7 +509,7 @@ class ShamanAI {
 
     showWelcomeEffects() {
         setTimeout(() => {
-            this.addSystemMessage("🌀 ShamanAI инициализирован с Hugging Face");
+            this.addSystemMessage("ShamanAI инициализирован");
         }, 500);
     }
 
@@ -548,11 +519,14 @@ class ShamanAI {
         thinkingDiv.className = 'message ai-message thinking-animation';
         thinkingDiv.id = 'thinkingIndicator';
         thinkingDiv.innerHTML = `
-            <span class="thinking-text">ShamanAI обрабатывает запрос</span>
-            <div class="thinking-dots">
-                <span></span>
-                <span></span>
-                <span></span>
+            <div class="message-avatar">AI</div>
+            <div class="message-content">
+                <span class="thinking-text">ShamanAI обрабатывает запрос</span>
+                <div class="thinking-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             </div>
         `;
         chatOutput.appendChild(thinkingDiv);
@@ -579,9 +553,9 @@ class ShamanAI {
             return this.handleChemistryRequest(input);
         } else {
             const responses = [
-                "🤔 Интересный вопрос! В текущем режиме я специализируюсь на учебных задачах.",
-                "🎯 ShamanAI лучше всего справляется с точными науками.",
-                "💡 Совет: используйте кнопки быстрых команд для доступа к инструментам."
+                "Интересный вопрос! В текущем режиме я специализируюсь на учебных задачах.",
+                "ShamanAI лучше всего справляется с точными науками.",
+                "Совет: используйте кнопки быстрых команд для доступа к инструментам."
             ];
             return responses[Math.floor(Math.random() * responses.length)];
         }
@@ -590,33 +564,33 @@ class ShamanAI {
     handleMathRequest(input) {
         if (input.includes('гипербола') || input.includes('гипербол')) {
             this.plotFunction('1/x', 'Гипербола y = 1/x');
-            return '📊 Строю график гиперболы y = 1/x\n\n💡 Гипербола - функция обратной пропорциональности';
+            return 'Строю график гиперболы y = 1/x. Гипербола - функция обратной пропорциональности';
         } else if (input.includes('парабола') || input.includes('квадрат')) {
             this.plotFunction('x^2', 'Парабола y = x²');
-            return '📈 Строю график параболы y = x²\n\n🎯 Парабола - график квадратичной функции';
+            return 'Строю график параболы y = x². Парабола - график квадратичной функции';
         } else {
-            return '📐 Я могу построить графики функций! Используйте кнопку "Построить график"';
+            return 'Я могу построить графики функций! Используйте кнопку "Построить график"';
         }
     }
 
     handleGeometryRequest(input) {
         this.drawInteractiveGeometry();
-        return '📐 Решаю геометрическую задачу. На основе описания строю схематический чертеж.';
+        return 'Решаю геометрическую задачу. На основе описания строю схематический чертеж.';
     }
 
     handlePhysicsRequest(input) {
-        return '🔬 Для задач по физике я могу строить электрические схемы, диаграммы сил. Опишите задачу подробнее.';
+        return 'Для задач по физике я могу строить электрические схемы, диаграммы сил. Опишите задачу подробнее.';
     }
 
     handleChemistryRequest(input) {
-        return '🧪 Для химических задач я могу рисовать структурные формулы, схемы реакций. Опишите вашу задачу.';
+        return 'Для химических задач я могу рисовать структурные формулы, схемы реакций. Опишите вашу задачу.';
     }
 
     addSystemMessage(text) {
         const chatOutput = document.getElementById('chatOutput');
         const systemDiv = document.createElement('div');
         systemDiv.className = 'system-message';
-        systemDiv.innerHTML = `<span class="system-icon">⚡</span> ${text}`;
+        systemDiv.textContent = text;
         chatOutput.appendChild(systemDiv);
         chatOutput.scrollTop = chatOutput.scrollHeight;
     }
@@ -628,7 +602,7 @@ class ShamanAI {
         
         if (sender === 'ai') {
             messageDiv.innerHTML = `
-                <div class="message-avatar">🤖</div>
+                <div class="message-avatar">AI</div>
                 <div class="message-content">${this.formatResponse(text)}</div>
             `;
         } else {
