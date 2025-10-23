@@ -1,10 +1,62 @@
+// Конфигурация ShamanAI
+const SHAMAN_AI_CONFIG = {
+    MODELS: {
+        CHAT: 'microsoft/DialoGPT-medium',
+        MATH: 'google/flan-t5-base',
+        GENERAL: 'microsoft/DialoGPT-medium'
+    },
+    API_URLS: {
+        HUGGING_FACE: 'https://api-inference.huggingface.co/models/'
+    }
+};
+
 class ShamanAI {
     constructor() {
         this.history = [];
         this.isListening = false;
         this.aiMode = 'smart';
         this.requestCount = 0;
-        this.chatHistory = ''; // Для хранения истории диалога как в Python коде
+        this.chatHistory = '';
+        this.hfToken = localStorage.getItem('huggingface_token');
+        
+        if (!this.hfToken) {
+            this.showTokenModal();
+            return;
+        }
+        
+        this.initApp();
+    }
+
+    showTokenModal() {
+        document.getElementById('tokenModal').style.display = 'block';
+        document.getElementById('saveTokenBtn').addEventListener('click', () => this.saveToken());
+        document.getElementById('tokenInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.saveToken();
+        });
+    }
+
+    saveToken() {
+        const tokenInput = document.getElementById('tokenInput');
+        const token = tokenInput.value.trim();
+        
+        if (!token) {
+            alert('Пожалуйста, введите токен Hugging Face');
+            return;
+        }
+
+        if (!token.startsWith('hf_')) {
+            alert('Токен должен начинаться с hf_');
+            return;
+        }
+
+        this.hfToken = token;
+        localStorage.setItem('huggingface_token', token);
+        document.getElementById('tokenModal').style.display = 'none';
+        this.initApp();
+    }
+
+    initApp() {
+        document.getElementById('mainContainer').style.display = 'block';
         
         this.initParticles();
         this.initEventListeners();
@@ -103,11 +155,11 @@ class ShamanAI {
         this.addSystemMessage("🔗 Проверяю подключение к Hugging Face...");
         
         try {
-            // Простой тестовый запрос
             const response = await this.queryHuggingFace({
-                inputs: "Hello!",
+                inputs: "Привет! Ответь коротко.",
                 parameters: {
-                    max_new_tokens: 20
+                    max_new_tokens: 20,
+                    temperature: 0.7
                 }
             }, 'microsoft/DialoGPT-medium');
             
@@ -116,129 +168,19 @@ class ShamanAI {
         } catch (error) {
             console.error('Hugging Face connection failed:', error);
             this.updateAIStatus(false);
-            this.addSystemMessage("❌ Hugging Face недоступен: " + error.message);
-        }
-    }
-
-    // ОСНОВНАЯ ФУНКЦИЯ ДЛЯ ЗАПРОСОВ К HUGGING FACE
-    async queryHuggingFace(data, model = 'microsoft/DialoGPT-medium') {
-        const API_URL = `https://api-inference.huggingface.co/models/${model}`;
-        
-        console.log('🔄 Отправляю запрос к:', model);
-        console.log('📝 Данные:', data);
-
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${SHAMAN_AI_CONFIG.HUGGING_FACE_TOKEN}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        });
-
-        console.log('📡 Статус ответа:', response.status);
-
-        if (response.status === 503) {
-            // Модель загружается
-            throw new Error('Модель загружается. Подождите 20-30 секунд и попробуйте снова.');
-        }
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Ошибка API:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log('✅ Получен ответ:', result);
-        return result;
-    }
-
-    // ФУНКЦИЯ ДЛЯ ДИАЛОГА С ИСТОРИЕЙ (как в Python коде)
-    async chatWithDialoGPT(userMessage) {
-        try {
-            // Формируем входные данные как в Python примере
-            const inputs = this.chatHistory + userMessage;
             
-            const data = await this.queryHuggingFace({
-                inputs: inputs,
-                parameters: {
-                    max_new_tokens: 1000,
-                    temperature: 0.7,
-                    do_sample: true,
-                    pad_token_id: 50256, // eos_token_id для DialoGPT
-                    return_full_text: false
-                }
-            }, 'microsoft/DialoGPT-medium');
-
-            if (data && data[0] && data[0].generated_text) {
-                const botResponse = data[0].generated_text.trim();
-                
-                // Обновляем историю диалога
-                this.chatHistory = inputs + botResponse + ' ';
-                
-                return botResponse.replace(inputs, '').trim();
+            if (error.message.includes('401')) {
+                this.addSystemMessage("❌ Неверный токен Hugging Face. Удаляю токен...");
+                localStorage.removeItem('huggingface_token');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
             } else {
-                throw new Error('Неверный формат ответа от модели');
+                this.addSystemMessage("❌ Ошибка подключения: " + error.message);
             }
-        } catch (error) {
-            console.error('Ошибка в chatWithDialoGPT:', error);
-            throw error;
         }
     }
 
-    async handleUserInput() {
-        const userInput = document.getElementById('userInput');
-        const inputText = userInput.value.trim();
-        
-        if (!inputText) return;
-
-        this.addMessage(inputText, 'user');
-        userInput.value = '';
-        this.showThinkingIndicator();
-
-        try {
-            let response;
-            
-            if (this.isMathQuestion(inputText)) {
-                // Для математических вопросов используем FLAN-T5
-                response = await this.queryHuggingFace({
-                    inputs: `Реши математическую задачу: ${inputText}`,
-                    parameters: {
-                        max_new_tokens: 200,
-                        temperature: 0.3
-                    }
-                }, 'google/flan-t5-base');
-                
-                if (response && response[0] && response[0].generated_text) {
-                    response = response[0].generated_text;
-                }
-            } else {
-                // Для обычных вопросов используем DialoGPT с историей
-                response = await this.chatWithDialoGPT(inputText);
-            }
-            
-            this.hideThinkingIndicator();
-            this.addMessage(response, 'ai');
-            this.addToHistory(inputText, response);
-            this.updateRequestCount();
-            
-        } catch (error) {
-            this.hideThinkingIndicator();
-            console.error('❌ Ошибка:', error);
-            this.addMessage(`❌ Ошибка: ${error.message}`, 'ai');
-        }
-    }
-
-    isMathQuestion(input) {
-        const mathKeywords = [
-            'реши уравнение', 'посчитай', 'математика', 'алгебра', 'геометрия',
-            'формула', 'вычисли', 'задача по математике', 'уравнение', 'график'
-        ];
-        return mathKeywords.some(keyword => input.toLowerCase().includes(keyword));
-    }
-
-    // Остальные методы остаются такими же как были...
     updateAIStatus(isActive) {
         const aiStatus = document.querySelector('.ai-status');
         const apiStatus = document.querySelector('.api-status');
@@ -255,13 +197,118 @@ class ShamanAI {
         } else {
             aiStatus.innerHTML = `
                 <span class="ai-dot" style="background: #6B7280;"></span>
-                <span class="ai-text" style="color: #6B7280;">Локальный режим</span>
+                <span class="ai-text" style="color: #6B7280;">Ошибка подключения</span>
             `;
             apiStatus.innerHTML = `
                 <span class="status-icon">⚠️</span>
-                <span class="status-message">Local Mode</span>
+                <span class="status-message">Connection Error</span>
             `;
         }
+    }
+
+    async queryHuggingFace(data, model = 'microsoft/DialoGPT-medium') {
+        const API_URL = `${SHAMAN_AI_CONFIG.API_URLS.HUGGING_FACE}${model}`;
+        
+        console.log('🔄 Запрос к Hugging Face:', model);
+
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.hfToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+
+        console.log('📡 Статус ответа:', response.status);
+
+        if (response.status === 503) {
+            throw new Error('Модель загружается. Подождите 20-30 секунд и попробуйте снова.');
+        }
+
+        if (response.status === 401) {
+            throw new Error('401: Неверный токен Hugging Face');
+        }
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('✅ Получен ответ:', result);
+        return result;
+    }
+
+    async handleUserInput() {
+        const userInput = document.getElementById('userInput');
+        const inputText = userInput.value.trim();
+        
+        if (!inputText) return;
+
+        this.addMessage(inputText, 'user');
+        userInput.value = '';
+        this.showThinkingIndicator();
+
+        try {
+            let response;
+            
+            if (this.isMathQuestion(inputText)) {
+                response = await this.queryHuggingFace({
+                    inputs: `Реши математическую задачу: ${inputText}`,
+                    parameters: {
+                        max_new_tokens: 200,
+                        temperature: 0.3
+                    }
+                }, 'google/flan-t5-base');
+                
+                if (response && response[0] && response[0].generated_text) {
+                    response = response[0].generated_text;
+                }
+            } else {
+                response = await this.queryHuggingFace({
+                    inputs: inputText,
+                    parameters: {
+                        max_new_tokens: 150,
+                        temperature: this.aiMode === 'smart' ? 0.7 : 0.3,
+                        repetition_penalty: 1.1,
+                        do_sample: true,
+                        return_full_text: false
+                    }
+                }, 'microsoft/DialoGPT-medium');
+                
+                if (response && response[0] && response[0].generated_text) {
+                    response = response[0].generated_text;
+                }
+            }
+            
+            this.hideThinkingIndicator();
+            this.addMessage(response, 'ai');
+            this.addToHistory(inputText, response);
+            this.updateRequestCount();
+            
+        } catch (error) {
+            this.hideThinkingIndicator();
+            console.error('❌ Ошибка:', error);
+            
+            if (error.message.includes('401')) {
+                this.addMessage("❌ Неверный токен Hugging Face. Страница будет перезагружена...", 'ai');
+                localStorage.removeItem('huggingface_token');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            } else {
+                this.addMessage(`❌ Ошибка: ${error.message}`, 'ai');
+            }
+        }
+    }
+
+    isMathQuestion(input) {
+        const mathKeywords = [
+            'реши уравнение', 'посчитай', 'математика', 'алгебра', 'геометрия',
+            'формула', 'вычисли', 'задача по математике', 'уравнение', 'график',
+            'интеграл', 'производная', 'теорема'
+        ];
+        return mathKeywords.some(keyword => input.toLowerCase().includes(keyword));
     }
 
     async handleHandwritingUpload(event) {
@@ -279,7 +326,7 @@ class ShamanAI {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${SHAMAN_AI_CONFIG.HUGGING_FACE_TOKEN}`,
+                    'Authorization': `Bearer ${this.hfToken}`,
                 },
                 body: formData
             });
@@ -292,11 +339,6 @@ class ShamanAI {
             this.hideThinkingIndicator();
             this.addMessage(`📝 Распознанный текст: "${recognizedText}"`, 'ai');
             
-            // Если распознали математику, предлагаем решить
-            if (this.containsMath(recognizedText)) {
-                this.addMessage("🧮 Нашел математическую задачу! Хотите, чтобы я её решил?", 'ai');
-            }
-            
         } catch (error) {
             this.hideThinkingIndicator();
             this.addMessage("❌ Ошибка при обработке изображения", 'ai');
@@ -304,11 +346,6 @@ class ShamanAI {
 
         this.closeUploadModal();
         event.target.value = '';
-    }
-
-    containsMath(text) {
-        const mathPatterns = [/[\d+\-*/=]/, /уравнение/, /реши/, /посчитай/, /задача/];
-        return mathPatterns.some(pattern => pattern.test(text.toLowerCase()));
     }
 
     handleToolCommand(command) {
@@ -319,31 +356,54 @@ class ShamanAI {
             chemistry: () => this.handleChemistryQuestion(),
             handwriting: () => this.openUploadModal()
         };
-        if (commands[command]) commands[command]();
+
+        if (commands[command]) {
+            commands[command]();
+        }
     }
 
     async handlePhysicsQuestion() {
         this.addMessage("🔬 Задайте вопрос по физике...", 'user');
-        setTimeout(async () => {
-            try {
-                const response = await this.chatWithDialoGPT("Объясни концепцию из физики для школьников: законы Ньютона");
-                this.addMessage(response, 'ai');
-            } catch (error) {
-                this.addMessage("❌ Не удалось получить ответ по физике", 'ai');
+        this.showThinkingIndicator();
+        try {
+            const response = await this.queryHuggingFace({
+                inputs: "Объясни концепцию из физики для школьников: законы Ньютона",
+                parameters: {
+                    max_new_tokens: 150,
+                    temperature: 0.7
+                }
+            }, 'microsoft/DialoGPT-medium');
+            
+            this.hideThinkingIndicator();
+            if (response && response[0] && response[0].generated_text) {
+                this.addMessage(response[0].generated_text, 'ai');
             }
-        }, 100);
+        } catch (error) {
+            this.hideThinkingIndicator();
+            this.addMessage("❌ Не удалось получить ответ по физике", 'ai');
+        }
     }
 
     async handleChemistryQuestion() {
         this.addMessage("🧪 Задайте вопрос по химии...", 'user');
-        setTimeout(async () => {
-            try {
-                const response = await this.chatWithDialoGPT("Объясни основы химических реакций для школьников");
-                this.addMessage(response, 'ai');
-            } catch (error) {
-                this.addMessage("❌ Не удалось получить ответ по химии", 'ai');
+        this.showThinkingIndicator();
+        try {
+            const response = await this.queryHuggingFace({
+                inputs: "Объясни основы химических реакций для школьников",
+                parameters: {
+                    max_new_tokens: 150,
+                    temperature: 0.7
+                }
+            }, 'microsoft/DialoGPT-medium');
+            
+            this.hideThinkingIndicator();
+            if (response && response[0] && response[0].generated_text) {
+                this.addMessage(response[0].generated_text, 'ai');
             }
-        }, 100);
+        } catch (error) {
+            this.hideThinkingIndicator();
+            this.addMessage("❌ Не удалось получить ответ по химии", 'ai');
+        }
     }
 
     showGraphBuilder() {
@@ -365,14 +425,20 @@ class ShamanAI {
         
         setTimeout(() => {
             const ctx = document.getElementById('functionGraph').getContext('2d');
+            
             const data = [];
             for (let x = -10; x <= 10; x += 0.1) {
                 try {
                     let y;
-                    if (expression === '1/x') y = x !== 0 ? 1/x : null;
-                    else if (expression === 'x^2') y = x * x;
-                    else if (expression === 'sin(x)') y = Math.sin(x);
-                    else y = eval(expression.replace(/x/g, `(${x})`));
+                    if (expression === '1/x') {
+                        y = x !== 0 ? 1/x : null;
+                    } else if (expression === 'x^2') {
+                        y = x * x;
+                    } else if (expression === 'sin(x)') {
+                        y = Math.sin(x);
+                    } else {
+                        y = eval(expression.replace(/x/g, `(${x})`));
+                    }
                     
                     if (y !== null && isFinite(y) && Math.abs(y) < 100) {
                         data.push({x: x, y: y});
@@ -384,32 +450,44 @@ class ShamanAI {
             
             new Chart(ctx, {
                 type: 'line',
-                data: { datasets: [{
-                    label: title,
-                    data: data,
-                    borderColor: '#a45deb',
-                    backgroundColor: 'rgba(164, 93, 235, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    pointRadius: 0
-                }]},
+                data: {
+                    datasets: [{
+                        label: title,
+                        data: data,
+                        borderColor: '#a45deb',
+                        backgroundColor: 'rgba(164, 93, 235, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
                 options: {
                     responsive: true,
                     scales: {
                         x: {
                             type: 'linear',
                             position: 'bottom',
-                            grid: { color: 'rgba(126, 59, 216, 0.2)' },
-                            ticks: { color: '#e0d6f2' }
+                            grid: {
+                                color: 'rgba(126, 59, 216, 0.2)'
+                            },
+                            ticks: {
+                                color: '#e0d6f2'
+                            }
                         },
                         y: {
-                            grid: { color: 'rgba(126, 59, 216, 0.2)' },
-                            ticks: { color: '#e0d6f2' }
+                            grid: {
+                                color: 'rgba(126, 59, 216, 0.2)'
+                            },
+                            ticks: {
+                                color: '#e0d6f2'
+                            }
                         }
                     },
                     plugins: {
                         legend: {
-                            labels: { color: '#e0d6f2' }
+                            labels: {
+                                color: '#e0d6f2'
+                            }
                         }
                     }
                 }
@@ -465,7 +543,10 @@ class ShamanAI {
                     try {
                         const response = await this.queryHuggingFace({
                             inputs: `Реши математическую задачу: ${mathQuestion} Объясни шаги решения подробно.`,
-                            parameters: { max_new_tokens: 200, temperature: 0.3 }
+                            parameters: {
+                                max_new_tokens: 200,
+                                temperature: 0.3
+                            }
                         }, 'google/flan-t5-base');
                         
                         if (response && response[0] && response[0].generated_text) {
@@ -481,8 +562,17 @@ class ShamanAI {
                 this.addMessage(geometryQuestion, 'user');
                 setTimeout(async () => {
                     try {
-                        const response = await this.chatWithDialoGPT(geometryQuestion + " Объясни решение по формуле Герона.");
-                        this.addMessage(response, 'ai');
+                        const response = await this.queryHuggingFace({
+                            inputs: `Реши геометрическую задачу: ${geometryQuestion} Объясни решение по формуле Герона.`,
+                            parameters: {
+                                max_new_tokens: 200,
+                                temperature: 0.7
+                            }
+                        }, 'microsoft/DialoGPT-medium');
+                        
+                        if (response && response[0] && response[0].generated_text) {
+                            this.addMessage(response[0].generated_text, 'ai');
+                        }
                     } catch (error) {
                         this.addMessage("❌ Не удалось решить задачу", 'ai');
                     }
@@ -490,19 +580,23 @@ class ShamanAI {
             },
             clear: () => {
                 document.getElementById('chatOutput').innerHTML = '';
-                this.chatHistory = ''; // Очищаем историю диалога
                 this.showWelcomeEffects();
                 this.requestCount = 0;
                 this.updateRequestCount();
             }
         };
 
-        if (actions[action]) actions[action]();
+        if (actions[action]) {
+            actions[action]();
+        }
     }
 
     toggleVoiceInput() {
-        if (!this.isListening) this.startVoiceRecognition();
-        else this.stopVoiceRecognition();
+        if (!this.isListening) {
+            this.startVoiceRecognition();
+        } else {
+            this.stopVoiceRecognition();
+        }
     }
 
     startVoiceRecognition() {
@@ -561,7 +655,9 @@ class ShamanAI {
 
     hideThinkingIndicator() {
         const thinkingIndicator = document.getElementById('thinkingIndicator');
-        if (thinkingIndicator) thinkingIndicator.remove();
+        if (thinkingIndicator) {
+            thinkingIndicator.remove();
+        }
     }
 
     addSystemMessage(text) {
@@ -608,10 +704,13 @@ class ShamanAI {
     updateRequestCount() {
         this.requestCount++;
         const statNumber = document.querySelector('.stat-number');
-        if (statNumber) statNumber.textContent = this.requestCount;
+        if (statNumber) {
+            statNumber.textContent = this.requestCount;
+        }
     }
 }
 
+// Инициализация приложения
 document.addEventListener('DOMContentLoaded', () => {
     window.shamanAI = new ShamanAI();
 });
