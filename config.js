@@ -1,10 +1,9 @@
 const SHAMAN_AI_CONFIG = {
     HUGGING_FACE_TOKEN: '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',
     MODELS: {
-        CHAT: 'microsoft/DialoGPT-medium',
-        HANDWRITING: 'microsoft/trocr-large-handwritten',
-        MATH: 'google/flan-t5-large',
-        SCIENCE: 'allenai/ai2-rte'
+        CHAT: 'microsoft/DialoGPT-large',
+        MATH: 'google/flan-t5-xxl',
+        GENERAL: 'bigscience/bloom-560m'
     },
     API_URLS: {
         HUGGING_FACE: 'https://api-inference.huggingface.co/models/'
