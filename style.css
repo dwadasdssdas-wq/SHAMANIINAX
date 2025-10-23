@@ -324,23 +324,6 @@ body {
     color: #10B981;
 }
 
-.status-icon {
-    margin-right: 5px;
-}
-
-.tips-widget {
-    background: rgba(168, 85, 247, 0.1);
-    border: 1px solid rgba(168, 85, 247, 0.3);
-    border-radius: 12px;
-    padding: 15px;
-    margin-top: 20px;
-}
-
-.tips-widget h4 {
-    color: var(--neon-purple);
-    margin-bottom: 10px;
-}
-
 .chat-area {
     background: var(--card-bg);
     backdrop-filter: blur(10px);
@@ -369,7 +352,8 @@ body {
     justify-content: center;
     margin-right: 15px;
     position: relative;
-    font-size: 1.5rem;
+    font-size: 1rem;
+    font-weight: bold;
 }
 
 .avatar-glow {
@@ -434,8 +418,16 @@ body {
 }
 
 .welcome-avatar {
-    font-size: 2rem;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--neon-purple), var(--primary-purple));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-right: 15px;
+    font-weight: bold;
+    font-size: 0.9rem;
 }
 
 .welcome-content h4 {
@@ -479,6 +471,26 @@ body {
     border: 1px solid rgba(168, 85, 247, 0.3);
     margin-right: auto;
     border-bottom-left-radius: 5px;
+    display: flex;
+    align-items: flex-start;
+}
+
+.message-avatar {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, var(--neon-purple), var(--primary-purple));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.message-content {
+    flex: 1;
 }
 
 .input-section {
@@ -758,19 +770,6 @@ body {
     border-radius: 10px;
 }
 
-.system-icon {
-    margin-right: 5px;
-}
-
-.message-avatar {
-    font-size: 1.2rem;
-    margin-right: 10px;
-}
-
-.message-content {
-    flex: 1;
-}
-
 @media (max-width: 768px) {
     .main-interface {
         grid-template-columns: 1fr;
@@ -793,5 +792,9 @@ body {
         flex-direction: column;
         gap: 15px;
         text-align: center;
+    }
+    
+    .tech-stack {
+        justify-content: center;
     }
 }
