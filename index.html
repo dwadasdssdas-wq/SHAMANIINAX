@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>shamanAI | Футуристичный AI помощник</title>
+    <title>ShamanAI | Интеллектуальный помощник</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -19,62 +19,50 @@
         <header class="neon-header">
             <div class="logo-container">
                 <div class="logo-shimmer"></div>
-                <h1 class="neon-text" data-text="shamanAI">shamanAI</h1>
+                <h1 class="neon-text" data-text="ShamanAI">ShamanAI</h1>
                 <div class="pulse-dot"></div>
             </div>
-            <p class="subtitle">Футуристичный интеллект на Hugging Face</p>
+            <p class="subtitle">Интеллектуальный помощник для решения задач</p>
             <div class="status-indicator">
                 <span class="status-dot online"></span>
-                <span class="status-text">Нейросеть активна</span>
+                <span class="status-text">Система активна</span>
             </div>
             <div class="ai-status">
                 <span class="ai-dot active"></span>
-                <span class="ai-text">Hugging Face подключен</span>
+                <span class="ai-text">AI подключен</span>
             </div>
         </header>
 
         <div class="main-interface">
             <aside class="tool-panel">
                 <div class="tool-category">
-                    <h3>⚡ Быстрые команды</h3>
-                    <button class="tool-btn" data-command="graph">📊 Построить график</button>
-                    <button class="tool-btn" data-command="geometry">📐 Решить геометрию</button>
-                    <button class="tool-btn" data-command="physics">🔬 Схема по физике</button>
-                    <button class="tool-btn" data-command="chemistry">🧪 Химическая реакция</button>
+                    <h3>Быстрые команды</h3>
+                    <button class="tool-btn" data-command="graph">Построить график</button>
+                    <button class="tool-btn" data-command="geometry">Решить геометрию</button>
+                    <button class="tool-btn" data-command="physics">Схема по физике</button>
+                    <button class="tool-btn" data-command="chemistry">Химическая реакция</button>
                 </div>
                 
                 <div class="tool-category">
-                    <h3>🎯 AI Возможности</h3>
+                    <h3>Особые возможности</h3>
                     <button class="tool-btn special" id="handwritingBtn">
                         <span class="btn-glow"></span>
-                        ✍️ Распознать почерк
-                    </button>
-                    <button class="tool-btn special" id="voiceBtn">
-                        <span class="btn-glow"></span>
-                        🎤 Голосовой ввод
+                        Распознать почерк
                     </button>
                     <button class="tool-btn special" id="scanBtn">
                         <span class="btn-glow"></span>
-                        🔍 Сканировать задачу
+                        Сканировать задачу
                     </button>
                 </div>
 
                 <div class="tool-category">
-                    <h3>🧠 AI Режим</h3>
+                    <h3>Режим AI</h3>
                     <div class="ai-mode-selector">
                         <button class="mode-btn active" data-mode="smart">Умный режим</button>
                         <button class="mode-btn" data-mode="fast">Быстрый режим</button>
                     </div>
                     <div class="api-status">
-                        <span class="status-icon">🤗</span>
-                        <span class="status-message">Hugging Face Active</span>
-                    </div>
-                </div>
-
-                <div class="tips-widget">
-                    <h4>💡 Советы ShamanAI</h4>
-                    <div class="tip-content">
-                        <p>Используйте голосовой ввод для быстрых вопросов</p>
+                        <span class="status-message">AI активен</span>
                     </div>
                 </div>
             </aside>
@@ -83,11 +71,11 @@
                 <div class="chat-header">
                     <div class="ai-avatar">
                         <div class="avatar-glow"></div>
-                        <span>🌀</span>
+                        <span>AI</span>
                     </div>
                     <div class="chat-info">
                         <h3>Диалог с ShamanAI</h3>
-                        <p>Задайте вопрос - я использую Hugging Face модели</p>
+                        <p>Задайте вопрос - я постараюсь помочь</p>
                     </div>
                     <div class="chat-stats">
                         <div class="stat">
@@ -99,15 +87,15 @@
 
                 <div id="chatOutput" class="chat-output">
                     <div class="welcome-message">
-                        <div class="welcome-avatar">🤖</div>
+                        <div class="welcome-avatar">AI</div>
                         <div class="welcome-content">
-                            <h4>Привет! Я ShamanAI с Hugging Face</h4>
-                            <p>Я использую современные AI модели для:</p>
+                            <h4>Привет! Я ShamanAI</h4>
+                            <p>Я могу помочь с:</p>
                             <ul>
-                                <li>💬 Умных ответов на вопросы</li>
-                                <li>📈 Построения графиков функций</li>
-                                <li>✍️ Распознавания рукописного текста</li>
-                                <li>🧮 Решения математических задач</li>
+                                <li>Умными ответами на вопросы</li>
+                                <li>Построением графиков функций</li>
+                                <li>Распознаванием рукописного текста</li>
+                                <li>Решением математических задач</li>
                             </ul>
                             <p>Просто напиши или скажи задачу!</p>
                         </div>
@@ -139,7 +127,7 @@
 
         <div class="results-panel">
             <div class="panel-header">
-                <h3>📈 Результаты и визуализация</h3>
+                <h3>Результаты и визуализация</h3>
                 <button class="panel-toggle">▲</button>
             </div>
             <div class="panel-content">
@@ -156,13 +144,13 @@
         <footer class="neon-footer">
             <div class="footer-content">
                 <div class="tech-stack">
-                    <span class="tech-item">⚡ Hugging Face</span>
-                    <span class="tech-item">🔮 AI Models</span>
-                    <span class="tech-item">🎯 Precision Engine</span>
+                    <span class="tech-item">Neural Networks</span>
+                    <span class="tech-item">AI Models</span>
+                    <span class="tech-item">Precision Engine</span>
                 </div>
                 <div class="copyright">
                     <span class="by-shaman">by shaman</span>
-                    <span class="version">v3.0 | HF Edition</span>
+                    <span class="version">v4.0 | AI Edition</span>
                 </div>
             </div>
         </footer>
@@ -171,7 +159,7 @@
     <div id="uploadModal" class="modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
-            <h3>📤 Загрузка рукописного текста</h3>
+            <h3>Загрузка рукописного текста</h3>
             <div class="upload-area" id="dropZone">
                 <div class="upload-icon">📄</div>
                 <p>Перетащите сюда фото или нажмите для выбора</p>
